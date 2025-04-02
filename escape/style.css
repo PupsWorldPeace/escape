@@ -1,0 +1,634 @@
+/* --- Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400&display=swap');
+
+/* --- Keyframes --- */
+@keyframes matrix-scan {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 200px; } /* Even Slower */
+}
+
+@keyframes subtle-glow {
+    0% { filter: brightness(1); text-shadow: 0 0 5px var(--glow-color-soft); }
+    50% { filter: brightness(1.1); text-shadow: 0 0 10px var(--glow-color-medium); }
+    100% { filter: brightness(1); text-shadow: 0 0 5px var(--glow-color-soft); }
+}
+
+@keyframes fadeInScaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drawBorder {
+  0% { stroke-dashoffset: 1000; } /* Adjust based on path length if using SVG */
+  100% { stroke-dashoffset: 0; }
+}
+
+/* --- CSS Variables for Theming --- */
+:root {
+    /* Dark Mode (Default) */
+    --bg-color: #010201;
+    --text-color: #00dd00;
+    --text-color-secondary: #00aa00;
+    --accent-color: #00ff00;
+    --border-color: #005500;
+    --border-color-hover: #00aa00;
+    --header-bg-color: rgba(0, 5, 0, 0.20); /* Max transparency */
+    --header-blur: 10px;
+    --item-bg: rgba(0, 4, 0, 0.65); /* Slightly more opaque */
+    --item-shadow: 0 0 6px rgba(0, 180, 0, 0.1), inset 0 0 3px rgba(0, 180, 0, 0.08); /* Subtler shadow */
+    --item-shadow-hover: 0 0 20px rgba(0, 204, 0, 0.35), inset 0 0 8px rgba(0, 204, 0, 0.15); /* Refined hover shadow */
+    --glow-color-soft: rgba(0, 204, 0, 0.3); /* Softer glow */
+    --glow-color-medium: rgba(0, 230, 0, 0.5); /* Medium glow */
+    --glow-color-strong: rgba(0, 255, 0, 0.7); /* Strong glow */
+    --switch-bg: #333;
+    --switch-border: #005500;
+    --switch-knob: #00cc00;
+    --switch-knob-shadow: 0 0 5px rgba(0, 204, 0, 0.7);
+    --footer-border: #003300;
+    --fullscreen-bg: rgba(0, 2, 0, 0.98);
+    --fullscreen-border: #006600;
+    --fullscreen-shadow: 0 0 35px rgba(0, 204, 0, 0.25);
+    --close-bg: rgba(0, 0, 0, 0.6);
+    --close-border: #007700;
+    --close-color: #00dd00;
+    --close-hover-bg: #00dd00;
+    --close-hover-border: #00ff00;
+    --close-hover-color: #000;
+    --font-primary: 'Orbitron', sans-serif;
+    --font-secondary: 'Roboto Mono', monospace;
+    --bg-opacity: 1; /* For dark mode background effect */
+}
+
+body.light-mode {
+    --bg-color: #f4f4f4;
+    --text-color: #222;
+    --text-color-secondary: #555;
+    --accent-color: #007acc; /* Using a blue accent for light mode */
+    --border-color: #ccc;
+    --border-color-hover: #aaa;
+    --header-bg-color: rgba(255, 255, 255, 0.25); /* Max transparency */
+    --header-blur: 10px;
+    --item-bg: rgba(255, 255, 255, 0.85); /* Slightly more opaque */
+    --item-shadow: 0 2px 4px rgba(0, 0, 0, 0.06); /* Subtler shadow */
+    --item-shadow-hover: 0 4px 10px rgba(0, 0, 0, 0.12); /* Refined hover shadow */
+    --glow-color-soft: transparent; /* No glow in light mode */
+    --glow-color-medium: transparent;
+    --glow-color-strong: transparent;
+    --switch-bg: #ccc;
+    --switch-border: #999;
+    --switch-knob: #fff;
+    --switch-knob-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+    --footer-border: #ddd;
+    --fullscreen-bg: rgba(250, 250, 250, 0.97);
+    --fullscreen-border: #bbb;
+    --fullscreen-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    --close-bg: rgba(255, 255, 255, 0.8);
+    --close-border: #aaa;
+    --close-color: #333;
+    --close-hover-bg: #333;
+    --close-hover-border: #000;
+    --close-hover-color: #fff;
+    --bg-opacity: 0; /* Hide dark mode background effect */
+}
+
+/* --- Base Styles --- */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-secondary); /* Use mono for base, Orbitron for headings */
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    text-shadow: 0 0 3px var(--glow-color-soft);
+    /* Simplified base transition */
+    transition: background-color 0.5s ease, color 0.5s ease, text-shadow 0.5s ease;
+}
+
+/* Style to hide elements while fonts load */
+.fonts-loading header h1,
+.fonts-loading header p {
+    visibility: hidden;
+}
+
+/* REMOVED old body::before background effect */
+
+/* --- Matrix Canvas Background --- */
+#matrix-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1; /* Place behind all content */
+    display: block; /* Ensure it behaves as a block element */
+    pointer-events: none; /* Prevent interaction */
+    /* Transition for potential future effects, though not strictly needed for theme change */
+    transition: opacity 0.5s ease;
+}
+
+/* --- Header --- */
+header {
+    text-align: center;
+    padding: 40px 20px 35px; /* Adjusted padding */
+    background-color: var(--header-bg-color); /* Use semi-transparent background color */
+    backdrop-filter: blur(var(--header-blur)); /* Apply blur */
+    -webkit-backdrop-filter: blur(var(--header-blur)); /* Safari support */
+    border-top: 1px solid var(--border-color); /* Added top border */
+    border-bottom: 1px solid var(--border-color); /* Consistent border */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Consistent shadow base */
+    position: relative;
+    /* Simplified transitions - removed backdrop-filter and box-shadow */
+    transition: background-color 0.5s ease, border-color 0.5s ease;
+    overflow: hidden; /* Contain pseudo-elements */
+}
+/* Explicit transition for box-shadow change between modes - kept duration */
+body:not(.light-mode) header { box-shadow: 0 3px 12px rgba(0, 204, 0, 0.08); transition: box-shadow 0.5s ease; }
+body.light-mode header { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); transition: box-shadow 0.5s ease; }
+
+/* Decorative lines in header */
+header::before,
+header::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%; /* Adjust width as needed */
+    max-width: 700px;
+    height: 1px;
+    background: var(--border-color);
+    opacity: 0.5;
+    /* Changed background to background-color for transition - reverted duration */
+    transition: background-color 0.5s ease, opacity 0.5s ease;
+}
+header::before { top: 15px; } /* Line above title */
+header::after { bottom: 15px; } /* Line below paragraph */
+
+header h1 {
+    margin: 20px 0 10px 0; /* Adjusted margin for lines */
+    font-family: var(--font-primary);
+    font-size: 2.8em; /* Further refined size */
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    text-shadow: 0 0 8px var(--glow-color-medium), 0 0 15px var(--glow-color-soft); /* Refined glow */
+    animation: subtle-glow 6s ease-in-out infinite; /* Slightly slower animation */
+    position: relative;
+    z-index: 1;
+    /* Ensured animation is also part of transition if needed, though it's removed in light mode - reverted duration */
+    transition: color 0.5s ease, text-shadow 0.5s ease;
+}
+/* Explicit transition for text-shadow - reverted duration */
+body.light-mode header h1 { animation: none; text-shadow: none; transition: text-shadow 0.5s ease; }
+
+header p {
+    font-size: 1.0em; /* Slightly smaller */
+    margin-top: 5px; /* Added space */
+    color: var(--text-color-secondary);
+    text-shadow: 0 0 2px var(--glow-color-soft);
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    /* Ensured text-shadow transition - reverted duration */
+    transition: color 0.5s ease, text-shadow 0.5s ease;
+    font-weight: 300; /* Lighter weight for mono */
+}
+
+/* --- Gallery Grid --- */
+#gallery-container {
+    display: grid;
+    /* Using fixed columns but with no minimum size requirement */
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: min-content; /* More compact rows */
+    grid-auto-flow: dense; /* Essential for filling gaps */
+    gap: 4px; /* Slightly larger gap */
+    padding: 4px; /* Match gap */
+    max-width: 1900px;
+    margin: 15px auto; /* Increased margin */
+    align-items: stretch;
+    justify-items: stretch;
+    /* Added transition for background - reverted duration */
+    background: var(--bg-color); /* Match background with items */
+    transition: background-color 0.5s ease;
+}
+
+/* --- Gallery Item --- */
+.gallery-item {
+    border: 1px solid var(--border-color);
+    background-color: var(--item-bg);
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1 / 1; /* Default */
+    /* Simplified transition - removed box-shadow */
+    transition: transform 0.4s ease, border-color 0.5s ease, background-color 0.5s ease;
+    border-radius: 2px;
+    box-shadow: var(--item-shadow); /* Apply shadow, but don't transition it on theme change */
+    opacity: 0; /* Start hidden for load animation */
+    animation: fadeInScaleUp 0.6s ease-out forwards;
+    animation-delay: var(--animation-delay, 0s); /* Delay set by JS */
+    min-height: 0; /* Prevent overflow */
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0; /* Remove any margin */
+    box-sizing: border-box; /* Include border in size calculations */
+}
+
+/* Dynamic grid spans (example classes to be added by JS) */
+.gallery-item.span-col-2 { grid-column: span 2; }
+.gallery-item.span-row-2 { grid-row: span 2; aspect-ratio: 1 / 2; } /* Adjust aspect ratio */
+.gallery-item.span-2x2 { grid-column: span 2; grid-row: span 2; aspect-ratio: 1 / 1; }
+
+/* New spans for more variety */
+.gallery-item.span-col-3 { grid-column: span 3; aspect-ratio: 3 / 1; } /* Extra wide element */
+.gallery-item.span-row-3 { grid-row: span 3; aspect-ratio: 1 / 3; } /* Extra tall element */
+.gallery-item.skinny { aspect-ratio: 0.8 / 2; } /* Skinnier tall element */
+.gallery-item.long { aspect-ratio: 2.2 / 1; } /* Longer wide element */
+
+/* New aspect ratio variations for more visual interest */
+.gallery-item.wide-aspect { aspect-ratio: 16 / 9; }
+.gallery-item.tall-aspect { aspect-ratio: 9 / 16; }
+.gallery-item.square-aspect { aspect-ratio: 1 / 1; }
+.gallery-item.extra-tall { aspect-ratio: 9 / 21; }
+.gallery-item.super-wide { aspect-ratio: 21 / 9; }
+.gallery-item.ultra-wide { aspect-ratio: 18 / 7; }
+.gallery-item.cinema-wide { aspect-ratio: 21 / 8; }
+.gallery-item.short-wide { aspect-ratio: 14 / 9; }
+.gallery-item.super-tall { aspect-ratio: 9 / 27; }
+.gallery-item.panoramic { aspect-ratio: 32 / 12; }
+.gallery-item.tilted {
+    aspect-ratio: 1 / 1;
+    transform: rotate(3deg) scale(0.95);
+}
+
+/* Add more random rotations for a true mosaic effect */
+.gallery-item:nth-child(11n+1) { transform: rotate(2deg) scale(0.98); }
+.gallery-item:nth-child(13n+2) { transform: rotate(-1.5deg) scale(0.97); }
+.gallery-item:nth-child(7n+3) { transform: rotate(1deg) scale(0.99); }
+.gallery-item:nth-child(5n+4) { transform: rotate(-2deg) scale(0.96); }
+.gallery-item:nth-child(9n+5) { transform: rotate(1.5deg) scale(0.97); }
+.gallery-item:nth-child(8n+6) { transform: rotate(-1deg) scale(0.98); }
+.gallery-item:nth-child(6n+7) { transform: rotate(0.5deg) scale(0.99); }
+
+/* Override for specific item types */
+.gallery-item.tilted {
+    transform: rotate(3deg) scale(0.95);
+}
+
+/* Ensure the title overlays are still readable with rotations */
+.gallery-item .text-overlay {
+    transform: rotate(0deg); /* Keep text straight */
+}
+
+/* Add subtle depth with varied box-shadows */
+.gallery-item:nth-child(3n+1) { box-shadow: var(--item-shadow), 0 2px 3px rgba(0, 0, 0, 0.1); }
+.gallery-item:nth-child(3n+2) { box-shadow: var(--item-shadow), 0 1px 2px rgba(0, 0, 0, 0.15); }
+.gallery-item:nth-child(3n+3) { box-shadow: var(--item-shadow), 0 3px 4px rgba(0, 0, 0, 0.05); }
+
+/* Refined Hover Effects */
+.gallery-item:hover {
+    transform: scale(1.04); /* Less scale */
+    box-shadow: var(--item-shadow-hover);
+    z-index: 10;
+    border-color: var(--border-color-hover);
+}
+
+/* Drawing border effect using pseudo-element */
+.gallery-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border: 2px solid var(--accent-color);
+    border-radius: 2px;
+    pointer-events: none;
+    clip-path: polygon(0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%); /* Start clipped */
+    transition: clip-path 0.4s ease-out;
+    z-index: 4; /* Above click overlay */
+}
+.gallery-item:hover::before {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 1px, 1px 1px, 1px 100%, 0% 100%); /* Animate clip-path (simpler than SVG) */
+    /* A more complex SVG/stroke-dashoffset animation could also be used here */
+}
+
+
+.gallery-item iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    transition: filter 0.4s ease;
+    filter: brightness(0.95);
+}
+body.light-mode .gallery-item iframe { filter: none; } /* No filter in light mode */
+
+.gallery-item:hover iframe {
+    filter: brightness(1.02);
+}
+body.light-mode .gallery-item:hover iframe { filter: none; }
+
+/* Text Overlay (Number) */
+.gallery-item .text-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85) 80%);
+    color: var(--text-color);
+    text-align: center;
+    padding: 10px 5px 8px; /* Adjusted padding */
+    font-size: 1em;
+    font-weight: 400; /* Regular weight for mono */
+    opacity: 0;
+    /* Reverted duration */
+    transition: opacity 0.4s ease, background 0.5s ease, color 0.5s ease, text-shadow 0.5s ease;
+    pointer-events: none;
+    text-shadow: 0 0 4px var(--glow-color-soft);
+    z-index: 2;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+/* Added transition for background gradient - reverted duration */
+body.light-mode .gallery-item .text-overlay { background: linear-gradient(transparent, rgba(240, 240, 240, 0.9) 80%); transition: background 0.5s ease; }
+
+.gallery-item:hover .text-overlay {
+    opacity: 1;
+}
+
+/* Click Overlay */
+.gallery-item .click-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: transparent;
+    cursor: pointer;
+    z-index: 3;
+    border-radius: 2px;
+}
+
+/* Full width footer item (last piece) */
+.gallery-item.full-width-item {
+    grid-column: 1 / -1; /* Span all columns from the first to the last */
+    margin-top: 15px; /* Add some space above it */
+    aspect-ratio: 5 / 1; /* Wide aspect ratio */
+    border-width: 2px; /* Slightly thicker border */
+    max-height: 260px; /* Control the height */
+}
+
+/* Make sure the full-width item maintains appropriate aspect ratios on different screen sizes */
+@media (max-width: 1400px) {
+    .gallery-item.full-width-item {
+        aspect-ratio: 4 / 1;
+        max-height: 240px;
+    }
+}
+
+@media (max-width: 1100px) {
+    .gallery-item.full-width-item {
+        aspect-ratio: 3 / 1;
+        max-height: 210px;
+    }
+}
+
+@media (max-width: 900px) {
+    .gallery-item.full-width-item {
+        aspect-ratio: 2 / 1;
+        max-height: 180px;
+    }
+}
+
+@media (max-width: 500px) {
+    .gallery-item.full-width-item {
+        aspect-ratio: 1 / 1;
+        max-height: none;
+    }
+}
+
+/* --- Footer --- */
+footer {
+    text-align: center;
+    padding: 25px;
+    margin-top: 50px;
+    border-top: 1px solid var(--border-color); /* Use main border color for consistency */
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+    text-shadow: 0 0 2px var(--glow-color-soft);
+    /* Ensured all relevant properties transition - reverted duration */
+    transition: color 0.5s ease, border-color 0.5s ease, text-shadow 0.5s ease;
+    font-weight: 300;
+}
+
+/* --- Fullscreen --- */
+#fullscreen-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: var(--fullscreen-bg);
+    display: none; /* Toggled by JS */
+    justify-content: center; align-items: center;
+    z-index: 1000;
+    padding: 10px; box-sizing: border-box;
+    -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+    /* Simplified transition - removed backdrop-filter */
+    transition: opacity 0.4s ease, background-color 0.5s ease;
+    opacity: 0; /* Start hidden for transition */
+}
+#fullscreen-container.visible { /* Class added by JS */
+    display: flex;
+    opacity: 1;
+}
+
+#fullscreen-iframe {
+    width: calc(100% - 20px); height: calc(100% - 20px);
+    max-width: 95vw; max-height: 95vh; /* Adjusted max */
+    border: 1px solid var(--fullscreen-border);
+    box-shadow: var(--fullscreen-shadow);
+    background-color: #000; /* Dark bg while loading */
+    /* Simplified transition - removed box-shadow */
+    transition: border-color 0.5s ease, transform 0.4s ease, background-color 0.5s ease;
+    border-radius: 1px;
+    transform: scale(0.95); /* Start slightly scaled down for transition */
+}
+#fullscreen-container.visible #fullscreen-iframe {
+    transform: scale(1); /* Scale up when visible */
+}
+/* Added transition for background-color - reverted duration */
+body.light-mode #fullscreen-iframe { background-color: #fff; transition: background-color 0.5s ease; }
+
+#close-fullscreen {
+    position: absolute; top: 12px; right: 15px;
+    background: var(--close-bg);
+    border: 1px solid var(--close-border);
+    color: var(--close-color);
+    font-size: 2em; font-weight: bold; cursor: pointer;
+    padding: 0px 8px 3px; line-height: 1;
+    text-shadow: 0 0 4px var(--glow-color-medium);
+    /* Refined transition to be more specific - kept duration short */
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s ease, text-shadow 0.3s ease;
+    border-radius: 3px;
+    z-index: 1001; /* Above iframe */
+}
+/* Added transition for text-shadow - kept duration short */
+body.light-mode #close-fullscreen { text-shadow: none; transition: text-shadow 0.3s ease; }
+
+#close-fullscreen:hover {
+    background-color: var(--close-hover-bg);
+    border-color: var(--close-hover-border);
+    color: var(--close-hover-color);
+    transform: scale(1.1) rotate(90deg);
+    text-shadow: none;
+}
+
+/* --- Stylized Theme Switch --- */
+#theme-switch-container {
+    position: absolute;
+    top: 20px; /* Adjusted */
+    left: 20px;
+    z-index: 10;
+}
+
+#theme-checkbox { display: none; } /* Hide actual checkbox */
+
+.theme-switch-label {
+    cursor: pointer;
+    width: 50px; height: 26px; /* Slightly smaller */
+    background: var(--switch-bg);
+    display: block;
+    border-radius: 100px;
+    position: relative;
+    border: 1px solid var(--switch-border);
+    /* Ensured background-color and border-color transition - reverted duration */
+    transition: background-color 0.5s ease, border-color 0.5s ease;
+}
+
+.theme-switch-label .theme-switch-slider { /* The moving knob */
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px; /* Knob size */
+    background: var(--switch-knob);
+    border-radius: 50%;
+    /* Simplified transition - removed box-shadow */
+    transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.5s ease;
+    box-shadow: var(--switch-knob-shadow); /* Apply shadow, don't transition */
+}
+
+/* Icon Styling (using pseudo-elements on the slider) */
+.theme-switch-slider::before,
+.theme-switch-slider::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px; /* Adjust icon size */
+    transition: opacity 0.3s ease;
+}
+
+/* Dark mode icon (Moon - default state) */
+.theme-switch-slider::before {
+    /* Simple CSS moon */
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: transparent; /* Transparent part */
+    box-shadow: -3px 0 0 0 var(--switch-bg); /* Use background color for cutout */
+    opacity: 1; /* Visible by default */
+    /* Simplified transition - removed box-shadow */
+    transition: opacity 0.3s ease;
+}
+body.light-mode .theme-switch-slider::before { opacity: 0; } /* Hide in light mode */
+
+/* Light mode icon (Sun) */
+.theme-switch-slider::after {
+    /* Simple CSS sun */
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--switch-bg); /* Use background color */
+    box-shadow: 0 0 0 2px var(--switch-bg), /* Rays */
+                3px 0 0 0 var(--switch-bg), -3px 0 0 0 var(--switch-bg),
+                 0 3px 0 0 var(--switch-bg), 0 -3px 0 0 var(--switch-bg);
+    opacity: 0; /* Hidden by default */
+    transform: translate(-50%, -50%) scale(0.8); /* Slightly smaller */
+    /* Simplified transition - removed box-shadow */
+    transition: opacity 0.3s ease, background-color 0.5s ease;
+}
+body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mode */
+
+
+#theme-checkbox:checked + .theme-switch-label .theme-switch-slider {
+    left: calc(100% - 2px);
+    transform: translateX(-100%);
+}
+
+.theme-switch-label:active .theme-switch-slider {
+    width: 24px; /* Expand knob slightly on click */
+}
+
+/* --- Scroll Animation Class --- */
+.visible-scroll {
+    animation: fadeInScaleUp 0.8s ease-out forwards !important; /* Ensure it overrides initial state */
+}
+
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 1400px) {
+    #gallery-container {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        padding: 5px;
+    }
+    
+    /* Adjust all span-col-3 items to span only 2 columns on smaller screens */
+    .gallery-item.span-col-3 {
+        grid-column: span 2;
+        aspect-ratio: 2 / 1;
+    }
+}
+
+@media (max-width: 1100px) {
+    #gallery-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    /* Further adjust spans to fit 3-column layout */
+    .gallery-item.span-col-3 {
+        grid-column: span 3; /* Full width at this point */
+    }
+}
+
+@media (max-width: 900px) {
+    #gallery-container {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 4px;
+        gap: 4px;
+    }
+    
+    /* Adjust header spacing */
+    header { padding: 25px 15px; }
+    header h1 { font-size: 2.2em; }
+    
+    /* All items span at most 2 columns */
+    .gallery-item.span-col-3 {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 500px) {
+    #gallery-container { 
+        grid-template-columns: 1fr; 
+        padding: 3px; 
+        gap: 3px; 
+    }
+    
+    .gallery-item { aspect-ratio: 1 / 1; } /* Revert aspect ratio for single column */
+    
+    /* Remove all spans in single column layout */
+    .gallery-item.span-col-2, .gallery-item.span-row-2, .gallery-item.span-2x2,
+    .gallery-item.span-col-3, .gallery-item.span-row-3, .gallery-item.skinny, .gallery-item.long {
+        grid-column: span 1; 
+        grid-row: span 1; 
+        aspect-ratio: 1 / 1;
+    }
+    
+    /* Maintain the full-width item */
+    .gallery-item.full-width-item {
+        grid-column: 1 / -1;
+    }
+    
+    header h1 { font-size: 1.7em; }
+    header p { font-size: 0.9em; }
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escapist Capital Variations - Generative Art Gallery</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Preconnect to Google Fonts domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Preload WOFF2 font files (adjust URLs if necessary based on inspection) -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/orbitron/v25/yMJRMIlzdpvBhQQL_Qq7dy0.woff2" as="font" type="font/woff2" crossorigin="anonymous"> <!-- Orbitron 400 -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/orbitron/v25/yMJWMIlzdpvBhQQL_Qrc3xk_sA.woff2" as="font" type="font/woff2" crossorigin="anonymous"> <!-- Orbitron 700 -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/robotomono/v22/L0xFDF4xlVMF-BfR8bXMIjhGq3-cXbKDO1Ik9-I.woff2" as="font" type="font/woff2" crossorigin="anonymous"> <!-- Roboto Mono 300 (Example URL) -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/robotomono/v22/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2" as="font" type="font/woff2" crossorigin="anonymous"> <!-- Roboto Mono 400 (Example URL) -->
+
+    <!-- Link to Google Fonts stylesheet (loads after preloads initiated) -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="matrix-canvas"></canvas> <!-- Added Canvas -->
+    <header>
+        <!-- Stylized Theme Switch -->
+        <div id="theme-switch-container" title="Toggle Theme">
+            <input type="checkbox" id="theme-checkbox">
+            <label for="theme-checkbox" class="theme-switch-label">
+                <span class="theme-switch-inner"></span>
+                <span class="theme-switch-slider"></span>
+            </label>
+        </div>
+        <h1>Escapist Capital</h1>
+        <p>100 generative art pieces inscribed on bitcoin</p>
+    </header>
+    <main id="gallery-container">
+        <!-- Art pieces will be loaded here by JavaScript -->
+    </main>
+    <footer>
+        <p>Created by Cline</p>
+    </footer>
+
+    <!-- Fullscreen View Container -->
+    <div id="fullscreen-container">
+        <button id="close-fullscreen">&times;</button>
+        <iframe id="fullscreen-iframe" src="" title="Fullscreen Art Piece" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+
+    <script src="script.js" defer></script>
+</body>
+</html>
