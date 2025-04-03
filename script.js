@@ -2,6 +2,9 @@
 document.body.classList.add('fonts-loading');
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Get Splash Screen Element ---
+    const splashScreen = document.getElementById('splash-screen');
+    
     // --- Matrix Canvas Elements & Setup ---
     const canvas = document.getElementById('matrix-canvas');
     const ctx = canvas.getContext('2d');
@@ -129,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('galleryTheme', newTheme);
     };
 
-    // Apply saved theme or default
+    // Apply saved theme or default - we'll use this reference later for splash screen
     const savedTheme = localStorage.getItem('galleryTheme') || 'dark'; // Default to dark
     applyTheme(savedTheme);
 
@@ -237,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentBatch = 0;
     let lastLoadedItem = 0;
     let isLoading = false;
+    let initialBatchLoaded = false; // Track if first batch is loaded
 
     // Function to load a batch of items
     const loadNextBatch = () => {
@@ -253,6 +257,15 @@ document.addEventListener('DOMContentLoaded', () => {
         lastLoadedItem = endItem;
         currentBatch++;
         isLoading = false;
+        
+        // Hide splash screen after first batch loads
+        if (currentBatch === 1 && !initialBatchLoaded) {
+            initialBatchLoaded = true;
+            // Add a small delay to ensure items have rendered before removing splash screen
+            setTimeout(() => {
+                splashScreen.classList.add('hidden');
+            }, 800); // Adjust delay as needed (800ms should be enough)
+        }
     };
 
     // Function to create a gallery item
@@ -340,8 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
         galleryItem.dataset.artIndex = i;
     };
 
-    // Initial batch load
-    loadNextBatch();
+    // We'll delay this until after fonts are loaded
+    // and show splash screen in the meantime
 
     // --- Intersection Observer for Scroll Animations and Lazy Loading ---
     if ('IntersectionObserver' in window) {
@@ -477,16 +490,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('fonts' in document) {
         document.fonts.ready.then(() => {
             document.body.classList.remove('fonts-loading');
+            // Start the initial batch loading after fonts are ready
+            // This ensures the splash screen shows properly with the correct fonts
+            if (!initialBatchLoaded) {
+                // Load the initial batch with a slight delay to ensure smooth animation
+                setTimeout(loadNextBatch, 500);
+            }
         }).catch(error => {
             console.error('Font loading error:', error);
             // Remove class anyway in case of error, fallback font will be used
             document.body.classList.remove('fonts-loading');
+            if (!initialBatchLoaded) {
+                setTimeout(loadNextBatch, 500);
+            }
         });
     } else {
         // Fallback for older browsers (might still flash)
         // Remove class after a short delay as a basic fallback
         setTimeout(() => {
             document.body.classList.remove('fonts-loading');
+            if (!initialBatchLoaded) {
+                setTimeout(loadNextBatch, 500);
+            }
         }, 500); // Adjust delay if needed
     }
+    
+    // We already applied the theme above, no need to redeclare savedTheme or check again
+    
+    // Fallback to ensure splash screen doesn't stay indefinitely
+    setTimeout(() => {
+        if (!initialBatchLoaded) {
+            loadNextBatch(); // Force load first batch
+            setTimeout(() => {
+                splashScreen.classList.add('hidden'); // Force hide splash screen
+            }, 800);
+        }
+    }, 5000); // Wait max 5 seconds before forcing splash screen to close
 });
