@@ -232,9 +232,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Flatten the distribution for easier processing
     const flatDistribution = distribution.flat();
     
-    // Iterate through all pieces, applying sizes according to distribution
-    let itemIndex = 0;
-    for (let i = 1; i <= totalPieces; i++) {
+    // Batch rendering variables
+    const BATCH_SIZE = 15; // Load 15 items at a time
+    let currentBatch = 0;
+    let lastLoadedItem = 0;
+    let isLoading = false;
+
+    // Function to load a batch of items
+    const loadNextBatch = () => {
+        if (isLoading || lastLoadedItem >= totalPieces) return;
+        
+        isLoading = true;
+        const startItem = lastLoadedItem + 1;
+        const endItem = Math.min(lastLoadedItem + BATCH_SIZE, totalPieces);
+        
+        for (let i = startItem; i <= endItem; i++) {
+            createGalleryItem(i);
+        }
+        
+        lastLoadedItem = endItem;
+        currentBatch++;
+        isLoading = false;
+    };
+
+    // Function to create a gallery item
+    const createGalleryItem = (i) => {
         const artFileName = `${artBaseName}${i}.html`;
         const artFilePath = `${artBasePath}${artFileName}`;
         
@@ -262,12 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
             galleryItem.appendChild(clickOverlay);
             galleryContainer.appendChild(galleryItem);
             galleryItems.push(galleryItem);
-            continue; // Skip the regular item creation
+            return; // Skip the regular item creation
         }
         
         // Get the size from the distribution
+        const itemIndex = Math.min(i - 1, flatDistribution.length - 1);
         const [width, height, aspectClass] = flatDistribution[itemIndex];
-        itemIndex++;
         
         const galleryItem = document.createElement('div');
         galleryItem.classList.add('gallery-item');
@@ -293,11 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add staggered animation delay for loading effect
         galleryItem.style.setProperty('--animation-delay', `${(i % 20) * 0.03}s`);
         
-        const iframe = document.createElement('iframe');
-        iframe.src = artFilePath;
-        iframe.title = `Escapist Capital Variation ${i}`;
-        iframe.loading = 'lazy';
-        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+        // Create placeholder first, iframe will be loaded on intersection
+        const placeholder = document.createElement('div');
+        placeholder.classList.add('placeholder');
+        placeholder.textContent = i;
         
         const textOverlay = document.createElement('div');
         textOverlay.classList.add('text-overlay');
@@ -305,39 +326,151 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const clickOverlay = document.createElement('div');
         clickOverlay.classList.add('click-overlay');
+        clickOverlay.dataset.artPath = artFilePath;
         clickOverlay.addEventListener('click', () => openFullscreen(artFilePath));
         
-        galleryItem.appendChild(iframe);
+        galleryItem.appendChild(placeholder);
         galleryItem.appendChild(textOverlay);
         galleryItem.appendChild(clickOverlay);
         galleryContainer.appendChild(galleryItem);
         galleryItems.push(galleryItem);
-    }
 
-    // --- Intersection Observer for Scroll Animations ---
-    // (Use the same fadeInScaleUp animation, triggered on scroll)
+        // Store art path for lazy loading
+        galleryItem.dataset.artPath = artFilePath;
+        galleryItem.dataset.artIndex = i;
+    };
+
+    // Initial batch load
+    loadNextBatch();
+
+    // --- Intersection Observer for Scroll Animations and Lazy Loading ---
     if ('IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries, observerInstance) => {
+        // Observer for loading more batches when nearing the end
+        const batchObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    // Add a class to trigger animation (if needed, or rely on initial animation)
-                    // entry.target.classList.add('visible-scroll');
-                    // We already have an animation, just ensure it plays if initially off-screen
-                    // No need to add another class if fadeInScaleUp works on appearance
-                    observerInstance.unobserve(entry.target); // Stop observing once visible
+                if (entry.isIntersecting && !isLoading) {
+                    loadNextBatch();
                 }
             });
         }, {
-            threshold: 0.1 // Trigger when 10% of the item is visible
+            rootMargin: '200px', // Load more content before user reaches the end
+        });
+        
+        // Add sentinel element for infinite scroll
+        const sentinel = document.createElement('div');
+        sentinel.id = 'sentinel';
+        sentinel.style.height = '10px';
+        sentinel.style.width = '100%';
+        galleryContainer.appendChild(sentinel);
+        batchObserver.observe(sentinel);
+        
+        // Observer for loading iframes when they enter viewport
+        const itemObserver = new IntersectionObserver((entries, observerInstance) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const galleryItem = entry.target;
+                    const artPath = galleryItem.dataset.artPath;
+                    const placeholder = galleryItem.querySelector('.placeholder');
+                    
+                    if (placeholder && artPath) {
+                        // Replace placeholder with iframe
+                        const iframe = document.createElement('iframe');
+                        iframe.src = artPath;
+                        iframe.title = `Escapist Capital Variation ${galleryItem.dataset.artIndex}`;
+                        iframe.loading = 'lazy';
+                        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+                        
+                        galleryItem.replaceChild(iframe, placeholder);
+                        delete galleryItem.dataset.artPath; // Clean up data attribute
+                    }
+                    
+                    observerInstance.unobserve(galleryItem); // Stop observing once loaded
+                }
+            });
+        }, {
+            threshold: 0.2, // Trigger when 20% of the item is visible (was 0.1)
+            rootMargin: '100px', // Start loading a bit before it enters viewport
         });
 
-        galleryItems.forEach(item => {
-            observer.observe(item);
+        // Observe all gallery items for lazy loading
+        const observeItems = () => {
+            document.querySelectorAll('.gallery-item[data-art-path]').forEach(item => {
+                itemObserver.observe(item);
+            });
+        };
+        
+        // Observe initial items
+        observeItems();
+        
+        // Update sentinel position after each batch load
+        const updateSentinel = () => {
+            galleryContainer.appendChild(sentinel); // Move sentinel to the end
+        };
+        
+        // Setup mutation observer to detect when new items are added
+        const mutationObserver = new MutationObserver((mutations) => {
+            let shouldObserve = false;
+            
+            mutations.forEach(mutation => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.classList && node.classList.contains('gallery-item')) {
+                            shouldObserve = true;
+                        }
+                    });
+                }
+            });
+            
+            if (shouldObserve) {
+                observeItems();
+                updateSentinel();
+            }
         });
+        
+        mutationObserver.observe(galleryContainer, { childList: true });
+        
     } else {
-        // Fallback for older browsers: just remove initial opacity immediately
+        // Fallback for older browsers: load all at once
+        for (let i = 1; i <= totalPieces; i++) {
+            createGalleryItem(i);
+        }
         galleryItems.forEach(item => item.style.opacity = 1);
     }
+
+    // --- Matrix Animation Optimization ---
+    // Make matrix animation pause when off-screen or when scrolling
+    let isMatrixPaused = false;
+    let scrollTimeout;
+    
+    const pauseMatrix = () => {
+        if (!isMatrixPaused) {
+            isMatrixPaused = true;
+            cancelAnimationFrame(animationFrameId);
+        }
+    };
+    
+    const resumeMatrix = () => {
+        if (isMatrixPaused) {
+            isMatrixPaused = false;
+            drawMatrix();
+        }
+    };
+    
+    // Pause matrix when scrolling
+    window.addEventListener('scroll', () => {
+        pauseMatrix();
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(resumeMatrix, 200); // Resume after scrolling stops
+    });
+    
+    // Pause matrix when window not visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            pauseMatrix();
+        } else {
+            resumeMatrix();
+        }
+    });
 
     // --- Font Loading Detection ---
     // Use document.fonts.ready (modern browsers) to remove the loading class
