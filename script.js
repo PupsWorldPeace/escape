@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMatrix();
     drawMatrix();
 
-    // Handle window resize
+    // Handle window resize for matrix
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
@@ -113,6 +113,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setupMatrix(); // Recalculate columns and drops
             drawMatrix(); // Restart animation
         }, 250); // Debounce resize event
+    });
+
+    // --- Matrix Animation Optimization ---
+    // Pause matrix only when window not visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelAnimationFrame(animationFrameId);
+        } else {
+            drawMatrix();
+        }
     });
 
     // --- Theme Handling ---
@@ -237,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const flatDistribution = distribution.flat();
     
     // Batch rendering variables
-    const BATCH_SIZE = 20; // Increased from 15 to 20 to load more at once
+    const BATCH_SIZE = 30; // Increased from 20 to 30 for more aggressive preloading
     let currentBatch = 0;
     let lastLoadedItem = 0;
     let isLoading = false;
@@ -246,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to load a batch of items
     const loadNextBatch = () => {
-        if (isLoading || lastLoadedItem >= totalPieces || isScrolling) return;
+        if (isLoading || lastLoadedItem >= totalPieces) return;
         
         isLoading = true;
         const startItem = lastLoadedItem + 1;
@@ -364,12 +374,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Observer for loading more batches when nearing the end
         const batchObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting && !isLoading && !isScrolling) {
+                if (entry.isIntersecting && !isLoading) {
                     loadNextBatch();
                 }
             });
         }, {
-            rootMargin: '800px 0px 800px 0px', // Increased to load content farther ahead
+            rootMargin: '1200px 0px 1200px 0px', // Greatly increased from 800px to 1200px for extremely early loading
         });
         
         // Add sentinel element for infinite scroll
@@ -383,8 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Observer for loading iframes when they enter viewport
         const itemObserver = new IntersectionObserver((entries, observerInstance) => {
             entries.forEach(entry => {
-                // Only process if not actively scrolling
-                if (entry.isIntersecting && !isScrolling) {
+                // Process regardless of scrolling state now
+                if (entry.isIntersecting) {
                     const galleryItem = entry.target;
                     const artPath = galleryItem.dataset.artPath;
                     const placeholder = galleryItem.querySelector('.placeholder');
@@ -405,8 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }, {
-            threshold: 0.01, // Trigger when just 1% of the item is visible
-            rootMargin: '800px 0px', // Increased to load content farther ahead
+            threshold: 0.01, // Keep at 1% visibility threshold
+            rootMargin: '1500px 0px', // Extremely aggressive preloading (1500px ahead)
         });
 
         // Load initial batches at startup (preload multiple batches for smoother scrolling)
@@ -421,8 +431,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Load a third batch after another delay
                 setTimeout(() => {
                     loadNextBatch();
+                    
+                    // Load a fourth batch for even more preloaded content
+                    setTimeout(() => {
+                        loadNextBatch();
+                    }, 700);
                 }, 800);
-            }, 1500);
+            }, 1200);
         };
 
         // Observe all gallery items for lazy loading
@@ -462,46 +477,47 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mutationObserver.observe(galleryContainer, { childList: true });
         
-        // Handle scroll events to pause loading during active scrolling
+        // Handle scroll events - now we only use this to detect when scrolling stops
+        // but still load items during scrolling
         let loadScrollTimeout;
         window.addEventListener('scroll', () => {
             isScrolling = true;
             clearTimeout(loadScrollTimeout);
             
-            // Wait until scrolling stops before allowing new loads
+            // Process items that are about to enter viewport during scrolling
+            document.querySelectorAll('.gallery-item[data-art-path]').forEach(item => {
+                // Check if item is in viewport or about to enter it
+                const rect = item.getBoundingClientRect();
+                const isNearViewport = (
+                    rect.top >= -1500 &&
+                    rect.left >= 0 &&
+                    rect.bottom <= (window.innerHeight + 1500) &&
+                    rect.right <= window.innerWidth
+                );
+                
+                if (isNearViewport) {
+                    const artPath = item.dataset.artPath;
+                    const placeholder = item.querySelector('.placeholder');
+                    
+                    if (placeholder && artPath) {
+                        // Replace placeholder with iframe
+                        const iframe = document.createElement('iframe');
+                        iframe.src = artPath;
+                        iframe.title = `Escapist Capital Variation ${item.dataset.artIndex}`;
+                        iframe.loading = 'lazy';
+                        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+                        
+                        item.replaceChild(iframe, placeholder);
+                        delete item.dataset.artPath; // Clean up data attribute
+                        itemObserver.unobserve(item); // Stop observing this item
+                    }
+                }
+            });
+            
+            // Wait until scrolling stops before loading non-visible content
             loadScrollTimeout = setTimeout(() => {
                 isScrolling = false;
-                
-                // Once scrolling stops, observe items in view
-                document.querySelectorAll('.gallery-item[data-art-path]').forEach(item => {
-                    // Check if item is in viewport
-                    const rect = item.getBoundingClientRect();
-                    const isInViewport = (
-                        rect.top >= -800 &&
-                        rect.left >= 0 &&
-                        rect.bottom <= (window.innerHeight + 800) &&
-                        rect.right <= window.innerWidth
-                    );
-                    
-                    if (isInViewport) {
-                        const artPath = item.dataset.artPath;
-                        const placeholder = item.querySelector('.placeholder');
-                        
-                        if (placeholder && artPath) {
-                            // Replace placeholder with iframe
-                            const iframe = document.createElement('iframe');
-                            iframe.src = artPath;
-                            iframe.title = `Escapist Capital Variation ${item.dataset.artIndex}`;
-                            iframe.loading = 'lazy';
-                            iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-                            
-                            item.replaceChild(iframe, placeholder);
-                            delete item.dataset.artPath; // Clean up data attribute
-                            itemObserver.unobserve(item); // Stop observing this item
-                        }
-                    }
-                });
-            }, 200); // Wait 200ms after scrolling stops
+            }, 200);
         });
     } else {
         // Fallback for older browsers: load all at once
@@ -510,41 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         galleryItems.forEach(item => item.style.opacity = 1);
     }
-
-    // --- Matrix Animation Optimization ---
-    // Make matrix animation pause when off-screen or when scrolling
-    let isMatrixPaused = false;
-    let matrixScrollTimeout;
-    
-    const pauseMatrix = () => {
-        if (!isMatrixPaused) {
-            isMatrixPaused = true;
-            cancelAnimationFrame(animationFrameId);
-        }
-    };
-    
-    const resumeMatrix = () => {
-        if (isMatrixPaused) {
-            isMatrixPaused = false;
-            drawMatrix();
-        }
-    };
-    
-    // Pause matrix when scrolling
-    window.addEventListener('scroll', () => {
-        pauseMatrix();
-        clearTimeout(matrixScrollTimeout);
-        matrixScrollTimeout = setTimeout(resumeMatrix, 200); // Resume after scrolling stops
-    });
-    
-    // Pause matrix when window not visible
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            pauseMatrix();
-        } else {
-            resumeMatrix();
-        }
-    });
 
     // --- Font Loading Detection ---
     // Use document.fonts.ready (modern browsers) to remove the loading class
