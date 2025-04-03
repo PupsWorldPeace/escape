@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Row ~13 (Items 83-89)
         [ [1, 2, "tall-aspect"], [2, 1, "short-wide"], [1, 1, "wide-aspect"], [2, 2, "tilted"], [1, 2, "extra-tall"], [2, 1, "ultra-wide"], [1, 1, ""] ], // 7 items (Total 89)
         // Row ~14 (Items 90-99)
-        [ [3, 1, "cinema-wide"], [1, 2, "skinny"], [2, 1, "wide-aspect"], [1, 1, ""], [1, 3, "super-tall"], [2, 1, "ultra-wide"], [1, 1, "tall-aspect"], [2, 2, ""], [1, 1, "wide-aspect"], [1, 1, ""] ] 
+        [ [3, 1, "cinema-wide"], [1, 2, "skinny"], [2, 1, "wide-aspect"], [1, 1, ""], [1, 3, "super-tall"], [2, 1, "ultra-wide"], [1, 1, "tall-aspect"], [2, 2, ""], [1, 1, "wide-aspect"], [1, 1, ""] ] // 10 items (Total 99)
     ];
     
     // Calculate total items in the distribution
@@ -278,6 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 splashScreen.classList.add('hidden');
                 splashScreenRemoved = true; // Mark as removed to prevent reappearing
             }, 2500); // Increased from 800ms to 2500ms for longer splash screen
+        }
+        
+        // If we haven't loaded all pieces yet, schedule the next batch
+        if (lastLoadedItem < totalPieces) {
+            setTimeout(() => loadNextBatch(), 100);
         }
     };
 
@@ -496,20 +501,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
                 
                 if (isNearViewport) {
-                    const artPath = item.dataset.artPath;
-                    const placeholder = item.querySelector('.placeholder');
+                    const galleryItem = item;
+                    const artPath = galleryItem.dataset.artPath;
+                    const placeholder = galleryItem.querySelector('.placeholder');
                     
                     if (placeholder && artPath) {
                         // Replace placeholder with iframe
                         const iframe = document.createElement('iframe');
                         iframe.src = artPath;
-                        iframe.title = `Escapist Capital Variation ${item.dataset.artIndex}`;
+                        iframe.title = `Escapist Capital Variation ${galleryItem.dataset.artIndex}`;
                         iframe.loading = 'lazy';
                         iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
                         
-                        item.replaceChild(iframe, placeholder);
-                        delete item.dataset.artPath; // Clean up data attribute
-                        itemObserver.unobserve(item); // Stop observing this item
+                        galleryItem.replaceChild(iframe, placeholder);
+                        delete galleryItem.dataset.artPath; // Clean up data attribute
+                        itemObserver.unobserve(galleryItem); // Stop observing this item
                     }
                 }
             });
@@ -569,4 +575,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 2000);
         }
     }, 8000); // Increased from 5000ms to 8000ms to wait longer before force closing
+
+    // ALWAYS LOAD ALL PIECES
+    // Make sure all pieces get loaded even if some logic fails
+    // Ensure this runs after initial load to guarantee all art pieces are visible
+    setTimeout(() => {
+        // Check if we loaded all pieces
+        if (lastLoadedItem < totalPieces) {
+            console.log(`Ensuring all art pieces are loaded. Current: ${lastLoadedItem}/${totalPieces}`);
+            // Force load any remaining pieces
+            for (let i = lastLoadedItem + 1; i <= totalPieces; i++) {
+                createGalleryItem(i);
+            }
+        }
+    }, 10000); // Wait 10 seconds to ensure splash screen is gone and initial loading is complete
 });
