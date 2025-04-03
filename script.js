@@ -4,6 +4,7 @@ document.body.classList.add('fonts-loading');
 document.addEventListener('DOMContentLoaded', () => {
     // --- Get Splash Screen Element ---
     const splashScreen = document.getElementById('splash-screen');
+    let splashScreenRemoved = false; // Track if splash screen has been removed
     
     // --- Matrix Canvas Elements & Setup ---
     const canvas = document.getElementById('matrix-canvas');
@@ -236,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const flatDistribution = distribution.flat();
     
     // Batch rendering variables
-    const BATCH_SIZE = 15; // Load 15 items at a time
+    const BATCH_SIZE = 20; // Increased from 15 to 20 to load more at once
     let currentBatch = 0;
     let lastLoadedItem = 0;
     let isLoading = false;
@@ -258,13 +259,14 @@ document.addEventListener('DOMContentLoaded', () => {
         currentBatch++;
         isLoading = false;
         
-        // Hide splash screen after first batch loads
-        if (currentBatch === 1 && !initialBatchLoaded) {
+        // Hide splash screen after first batch loads, but only once
+        if (currentBatch === 1 && !initialBatchLoaded && !splashScreenRemoved) {
             initialBatchLoaded = true;
-            // Add a small delay to ensure items have rendered before removing splash screen
+            // Add a longer delay to ensure items have rendered and give more loading time
             setTimeout(() => {
                 splashScreen.classList.add('hidden');
-            }, 800); // Adjust delay as needed (800ms should be enough)
+                splashScreenRemoved = true; // Mark as removed to prevent reappearing
+            }, 2500); // Increased from 800ms to 2500ms for longer splash screen
         }
     };
 
@@ -366,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }, {
-            rootMargin: '200px', // Load more content before user reaches the end
+            rootMargin: '500px 0px 500px 0px', // Increased from 200px to 500px to load content much earlier
         });
         
         // Add sentinel element for infinite scroll
@@ -401,9 +403,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }, {
-            threshold: 0.2, // Trigger when 20% of the item is visible (was 0.1)
-            rootMargin: '100px', // Start loading a bit before it enters viewport
+            threshold: 0.01, // Trigger when just 1% of the item is visible (was 0.2)
+            rootMargin: '600px 0px', // Greatly increased rootMargin to load content much earlier before it enters viewport
         });
+
+        // Load initial batches at startup (preload 2 batches for smoother scrolling)
+        const preloadInitialBatches = () => {
+            // Load first batch immediately
+            loadNextBatch();
+            
+            // After a short delay, load second batch to have more content ready to display
+            setTimeout(() => {
+                loadNextBatch();
+            }, 1500);
+        };
 
         // Observe all gallery items for lazy loading
         const observeItems = () => {
@@ -493,15 +506,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Start the initial batch loading after fonts are ready
             // This ensures the splash screen shows properly with the correct fonts
             if (!initialBatchLoaded) {
-                // Load the initial batch with a slight delay to ensure smooth animation
-                setTimeout(loadNextBatch, 500);
+                // Load initial batches for smoother scrolling experience
+                setTimeout(preloadInitialBatches, 500);
             }
         }).catch(error => {
             console.error('Font loading error:', error);
             // Remove class anyway in case of error, fallback font will be used
             document.body.classList.remove('fonts-loading');
             if (!initialBatchLoaded) {
-                setTimeout(loadNextBatch, 500);
+                setTimeout(preloadInitialBatches, 500);
             }
         });
     } else {
@@ -510,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             document.body.classList.remove('fonts-loading');
             if (!initialBatchLoaded) {
-                setTimeout(loadNextBatch, 500);
+                setTimeout(preloadInitialBatches, 500);
             }
         }, 500); // Adjust delay if needed
     }
@@ -519,11 +532,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Fallback to ensure splash screen doesn't stay indefinitely
     setTimeout(() => {
-        if (!initialBatchLoaded) {
+        if (!initialBatchLoaded && !splashScreenRemoved) {
             loadNextBatch(); // Force load first batch
             setTimeout(() => {
-                splashScreen.classList.add('hidden'); // Force hide splash screen
-            }, 800);
+                splashScreen.classList.add('hidden');
+                splashScreenRemoved = true; // Mark as removed to prevent reappearing
+            }, 2000);
         }
-    }, 5000); // Wait max 5 seconds before forcing splash screen to close
+    }, 8000); // Increased from 5000ms to 8000ms to wait longer before force closing
 });
