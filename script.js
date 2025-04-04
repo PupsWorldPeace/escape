@@ -2,15 +2,6 @@
 document.body.classList.add('fonts-loading');
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Get Splash Screen Element ---
-    const splashScreen = document.getElementById('splash-screen');
-    let splashScreenRemoved = false; // Track if splash screen has been removed
-    
-    // --- Matrix Canvas Elements & Setup ---
-    const canvas = document.getElementById('matrix-canvas');
-    const ctx = canvas.getContext('2d');
-    let animationFrameId; // To control the animation loop
-
     // --- Elements ---
     const galleryContainer = document.getElementById('gallery-container');
     const fullscreenContainer = document.getElementById('fullscreen-container');
@@ -30,101 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- Matrix Animation Logic ---
-    let frameCount = 0; // Counter to slow down animation
-    const animationSpeed = 4; // Draw every N frames (higher = slower)
-    let matrixConfig = {
-        chars: "10", // Only use 1s and 0s
-        fontSize: 14,
-        fontFamily: 'monospace',
-        textColorDark: '#00dd00', // Adjusted green slightly
-        textColorLight: '#333333', // Dark grey for light mode
-        bgColorDark: 'rgba(0, 0, 0, 0.04)', // Slightly slower fade for dark
-        bgColorLight: 'rgba(255, 255, 255, 0.06)', // Slightly slower fade for light
-        columns: 0,
-        drops: [],
-        textColor: '', // Will be set by theme
-        bgColor: ''    // Will be set by theme
-    };
-
-    const setupMatrix = () => {
-        frameCount = 0; // Reset frame count on setup
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        matrixConfig.columns = Math.floor(canvas.width / matrixConfig.fontSize);
-        matrixConfig.drops = [];
-        for (let x = 0; x < matrixConfig.columns; x++) {
-            matrixConfig.drops[x] = 1;
-        }
-        // Set initial theme colors
-        const currentTheme = bodyElement.classList.contains('light-mode') ? 'light' : 'dark';
-        updateMatrixTheme(currentTheme);
-    };
-
-    const drawMatrix = () => {
-        animationFrameId = requestAnimationFrame(drawMatrix); // Request next frame immediately
-
-        frameCount++;
-        if (frameCount < animationSpeed) {
-            return; // Skip drawing this frame to slow down animation
-        }
-        frameCount = 0; // Reset frame counter
-
-        // Set background with transparency for fading effect
-        ctx.fillStyle = matrixConfig.bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = matrixConfig.textColor;
-        ctx.font = `${matrixConfig.fontSize}px ${matrixConfig.fontFamily}`;
-
-        for (let i = 0; i < matrixConfig.drops.length; i++) {
-            const text = matrixConfig.chars[Math.floor(Math.random() * matrixConfig.chars.length)];
-            ctx.fillText(text, i * matrixConfig.fontSize, matrixConfig.drops[i] * matrixConfig.fontSize);
-
-            // Sending the drop back to the top randomly after it has crossed the screen
-            // Adding randomness to the reset to make the rain look more chaotic
-            if (matrixConfig.drops[i] * matrixConfig.fontSize > canvas.height && Math.random() > 0.975) {
-                matrixConfig.drops[i] = 0;
-            }
-            matrixConfig.drops[i]++;
-        }
-    };
-
-    const updateMatrixTheme = (theme) => {
-        if (theme === 'light') {
-            matrixConfig.textColor = matrixConfig.textColorLight;
-            matrixConfig.bgColor = matrixConfig.bgColorLight;
-        } else {
-            matrixConfig.textColor = matrixConfig.textColorDark;
-            matrixConfig.bgColor = matrixConfig.bgColorDark;
-        }
-    };
-
-    // Initial setup and start animation
-    setupMatrix();
-    drawMatrix();
-
-    // Handle window resize for matrix
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            cancelAnimationFrame(animationFrameId); // Stop current animation
-            setupMatrix(); // Recalculate columns and drops
-            drawMatrix(); // Restart animation
-        }, 250); // Debounce resize event
-    });
-
-    // --- Matrix Animation Optimization ---
-    // Pause matrix only when window not visible
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            cancelAnimationFrame(animationFrameId);
-        } else {
-            drawMatrix();
-        }
-    });
-
     // --- Theme Handling ---
     const applyTheme = (theme) => {
         if (theme === 'light') {
@@ -134,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bodyElement.classList.remove('light-mode');
             themeCheckbox.checked = false;
         }
-        updateMatrixTheme(theme); // Update canvas colors on theme change
     };
 
     const toggleTheme = () => {
@@ -221,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     distribution.forEach(row => {
         totalItemsInDistribution += row.length;
     });
+    console.log(`Distribution contains ${totalItemsInDistribution} items for ${totalPieces} art pieces`);
     
     // Ensure we have exactly 100 items
     if (totalItemsInDistribution < totalPieces) {
@@ -228,11 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const additionalItems = totalPieces - totalItemsInDistribution;
         const lastRowIndex = distribution.length - 1;
         distribution[lastRowIndex - 1].push(...Array(additionalItems).fill([1, 1, ""]));
+        console.log(`Added ${additionalItems} additional items to reach ${totalPieces} total`);
     } else if (totalItemsInDistribution > totalPieces) {
         console.warn(`Distribution has ${totalItemsInDistribution} items, but we only need ${totalPieces}. Adjusting...`);
         // Remove some 1x1 items
-        const excessItems = totalItemsInDistribution - totalPieces;
         let removed = 0;
+        let excessItems = totalItemsInDistribution - totalPieces;
         for (let i = distribution.length - 2; i >= 0 && removed < excessItems; i--) {
             for (let j = distribution[i].length - 1; j >= 0 && removed < excessItems; j--) {
                 if (distribution[i][j][0] === 1 && distribution[i][j][1] === 1) {
@@ -241,53 +138,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+        console.log(`Removed ${removed} excess items to reach ${totalPieces} total`);
     }
     
     // Flatten the distribution for easier processing
     const flatDistribution = distribution.flat();
     
     // Batch rendering variables
-    const BATCH_SIZE = 30; // Increased from 20 to 30 for more aggressive preloading
+    const BATCH_SIZE = 20; // Reasonable batch size
     let currentBatch = 0;
     let lastLoadedItem = 0;
-    let isLoading = false;
-    let initialBatchLoaded = false; // Track if first batch is loaded
-    let isScrolling = false; // Track scrolling state
-    
-    // Function to load a batch of items
-    const loadNextBatch = () => {
-        if (isLoading || lastLoadedItem >= totalPieces) return;
-        
-        isLoading = true;
-        const startItem = lastLoadedItem + 1;
-        const endItem = Math.min(lastLoadedItem + BATCH_SIZE, totalPieces);
-        
-        for (let i = startItem; i <= endItem; i++) {
-            createGalleryItem(i);
-        }
-        
-        lastLoadedItem = endItem;
-        currentBatch++;
-        isLoading = false;
-        
-        // Hide splash screen after first batch loads, but only once
-        if (currentBatch === 1 && !initialBatchLoaded && !splashScreenRemoved) {
-            initialBatchLoaded = true;
-            // Add a longer delay to ensure items have rendered and give more loading time
-            setTimeout(() => {
-                splashScreen.classList.add('hidden');
-                splashScreenRemoved = true; // Mark as removed to prevent reappearing
-            }, 2500); // Increased from 800ms to 2500ms for longer splash screen
-        }
-        
-        // If we haven't loaded all pieces yet, schedule the next batch
-        if (lastLoadedItem < totalPieces) {
-            setTimeout(() => loadNextBatch(), 100);
-        }
-    };
-
     // Function to create a gallery item
     const createGalleryItem = (i) => {
+        // Skip if this item already exists
+        if (document.querySelector(`.gallery-item[data-art-index="${i}"]`)) {
+            console.log(`Item ${i} already exists, skipping creation`);
+            return;
+        }
+        
         const artFileName = `${artBaseName}${i}.html`;
         const artFilePath = `${artBasePath}${artFileName}`;
         
@@ -295,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (i === totalPieces) {
             const galleryItem = document.createElement('div');
             galleryItem.classList.add('gallery-item', 'full-width-item');
+            galleryItem.dataset.artIndex = i; // Set data attribute for tracking
             
             const iframe = document.createElement('iframe');
             iframe.src = artFilePath;
@@ -315,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             galleryItem.appendChild(clickOverlay);
             galleryContainer.appendChild(galleryItem);
             galleryItems.push(galleryItem);
+            console.log(`Created full-width gallery item #${i}`);
             return; // Skip the regular item creation
         }
         
@@ -324,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const galleryItem = document.createElement('div');
         galleryItem.classList.add('gallery-item');
+        galleryItem.dataset.artIndex = i; // Set data attribute for tracking
         
         // Apply width and height classes
         if (width === 2 && height === 2) {
@@ -345,248 +216,113 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add staggered animation delay for loading effect
         galleryItem.style.setProperty('--animation-delay', `${(i % 20) * 0.03}s`);
-        
-        // Create placeholder first, iframe will be loaded on intersection
+
+        // Create placeholder initially
         const placeholder = document.createElement('div');
         placeholder.classList.add('placeholder');
-        placeholder.textContent = i;
-        
+        placeholder.textContent = i; // Display number in placeholder
+
+        // Store the actual iframe source in a data attribute
+        galleryItem.dataset.src = artFilePath;
+
         const textOverlay = document.createElement('div');
         textOverlay.classList.add('text-overlay');
         textOverlay.textContent = i;
-        
+
         const clickOverlay = document.createElement('div');
         clickOverlay.classList.add('click-overlay');
-        clickOverlay.dataset.artPath = artFilePath;
-        clickOverlay.addEventListener('click', () => openFullscreen(artFilePath));
-        
-        galleryItem.appendChild(placeholder);
+        // Note: The click listener now needs the path from the dataset
+        clickOverlay.addEventListener('click', () => {
+            const path = galleryItem.dataset.src;
+            if (path) {
+                openFullscreen(path);
+            }
+        });
+
+        galleryItem.appendChild(placeholder); // Add placeholder first
         galleryItem.appendChild(textOverlay);
         galleryItem.appendChild(clickOverlay);
         galleryContainer.appendChild(galleryItem);
-        galleryItems.push(galleryItem);
-
-        // Store art path for lazy loading
-        galleryItem.dataset.artPath = artFilePath;
-        galleryItem.dataset.artIndex = i;
+        galleryItems.push(galleryItem); // Add to array for IntersectionObserver
     };
 
-    // We'll delay this until after fonts are loaded
-    // and show splash screen in the meantime
+    // --- Intersection Observer Setup ---
+    const observerOptions = {
+        root: null, // Use the viewport as the root
+        rootMargin: '0px 0px 200px 0px', // Load images 200px before they enter viewport
+        threshold: 0.01 // Trigger when even 1% is visible
+    };
 
-    // --- Intersection Observer for Scroll Animations and Lazy Loading ---
-    if ('IntersectionObserver' in window) {
-        // Observer for loading more batches when nearing the end
-        const batchObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !isLoading) {
-                    loadNextBatch();
-                }
-            });
-        }, {
-            rootMargin: '1200px 0px 1200px 0px', // Greatly increased from 800px to 1200px for extremely early loading
-        });
-        
-        // Add sentinel element for infinite scroll
-        const sentinel = document.createElement('div');
-        sentinel.id = 'sentinel';
-        sentinel.style.height = '10px';
-        sentinel.style.width = '100%';
-        galleryContainer.appendChild(sentinel);
-        batchObserver.observe(sentinel);
-        
-        // Observer for loading iframes when they enter viewport
-        const itemObserver = new IntersectionObserver((entries, observerInstance) => {
-            entries.forEach(entry => {
-                // Process regardless of scrolling state now
-                if (entry.isIntersecting) {
-                    const galleryItem = entry.target;
-                    const artPath = galleryItem.dataset.artPath;
+    const observerCallback = (entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const galleryItem = entry.target;
+                const iframeSrc = galleryItem.dataset.src;
+
+                if (iframeSrc && !galleryItem.querySelector('iframe')) { // Check if iframe already exists
+                    console.log(`Loading iframe for item #${galleryItem.dataset.artIndex}`);
+                    const iframe = document.createElement('iframe');
+                    iframe.src = iframeSrc;
+                    iframe.title = `Escapist Capital Variation ${galleryItem.dataset.artIndex}`;
+                    iframe.loading = 'lazy'; // Still useful as a fallback
+                    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+                    iframe.classList.add('loading'); // Add class for potential styling
+
+                    // Remove placeholder and add iframe
                     const placeholder = galleryItem.querySelector('.placeholder');
-                    
-                    if (placeholder && artPath) {
-                        // Replace placeholder with iframe
-                        const iframe = document.createElement('iframe');
-                        iframe.src = artPath;
-                        iframe.title = `Escapist Capital Variation ${galleryItem.dataset.artIndex}`;
-                        iframe.loading = 'lazy';
-                        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-                        
-                        galleryItem.replaceChild(iframe, placeholder);
-                        delete galleryItem.dataset.artPath; // Clean up data attribute
+                    if (placeholder) {
+                        placeholder.remove();
                     }
-                    
-                    observerInstance.unobserve(galleryItem); // Stop observing once loaded
-                }
-            });
-        }, {
-            threshold: 0.01, // Keep at 1% visibility threshold
-            rootMargin: '1500px 0px', // Extremely aggressive preloading (1500px ahead)
-        });
+                    galleryItem.insertBefore(iframe, galleryItem.querySelector('.text-overlay')); // Insert before text overlay
 
-        // Load initial batches at startup (preload multiple batches for smoother scrolling)
-        const preloadInitialBatches = () => {
-            // Load first batch immediately
-            loadNextBatch();
-            
-            // After a short delay, load more batches to have content ready to display
-            setTimeout(() => {
-                loadNextBatch();
-                
-                // Load a third batch after another delay
-                setTimeout(() => {
-                    loadNextBatch();
-                    
-                    // Load a fourth batch for even more preloaded content
-                    setTimeout(() => {
-                        loadNextBatch();
-                    }, 700);
-                }, 800);
-            }, 1200);
-        };
+                    iframe.onload = () => {
+                        iframe.classList.remove('loading');
+                        iframe.classList.add('loaded'); // Add loaded class
+                    };
+                    iframe.onerror = () => {
+                        console.error(`Failed to load iframe: ${iframeSrc}`);
+                        iframe.classList.remove('loading');
+                        // Optionally add an error state style
+                    };
 
-        // Observe all gallery items for lazy loading
-        const observeItems = () => {
-            document.querySelectorAll('.gallery-item[data-art-path]').forEach(item => {
-                itemObserver.observe(item);
-            });
-        };
-        
-        // Observe initial items
-        observeItems();
-        
-        // Update sentinel position after each batch load
-        const updateSentinel = () => {
-            galleryContainer.appendChild(sentinel); // Move sentinel to the end
-        };
-        
-        // Setup mutation observer to detect when new items are added
-        const mutationObserver = new MutationObserver((mutations) => {
-            let shouldObserve = false;
-            
-            mutations.forEach(mutation => {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach(node => {
-                        if (node.classList && node.classList.contains('gallery-item')) {
-                            shouldObserve = true;
-                        }
-                    });
+                    // Stop observing this item once loaded
+                    observer.unobserve(galleryItem);
                 }
-            });
-            
-            if (shouldObserve) {
-                observeItems();
-                updateSentinel();
             }
         });
-        
-        mutationObserver.observe(galleryContainer, { childList: true });
-        
-        // Handle scroll events - now we only use this to detect when scrolling stops
-        // but still load items during scrolling
-        let loadScrollTimeout;
-        window.addEventListener('scroll', () => {
-            isScrolling = true;
-            clearTimeout(loadScrollTimeout);
-            
-            // Process items that are about to enter viewport during scrolling
-            document.querySelectorAll('.gallery-item[data-art-path]').forEach(item => {
-                // Check if item is in viewport or about to enter it
-                const rect = item.getBoundingClientRect();
-                const isNearViewport = (
-                    rect.top >= -1500 &&
-                    rect.left >= 0 &&
-                    rect.bottom <= (window.innerHeight + 1500) &&
-                    rect.right <= window.innerWidth
-                );
-                
-                if (isNearViewport) {
-                    const galleryItem = item;
-                    const artPath = galleryItem.dataset.artPath;
-                    const placeholder = galleryItem.querySelector('.placeholder');
-                    
-                    if (placeholder && artPath) {
-                        // Replace placeholder with iframe
-                        const iframe = document.createElement('iframe');
-                        iframe.src = artPath;
-                        iframe.title = `Escapist Capital Variation ${galleryItem.dataset.artIndex}`;
-                        iframe.loading = 'lazy';
-                        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-                        
-                        galleryItem.replaceChild(iframe, placeholder);
-                        delete galleryItem.dataset.artPath; // Clean up data attribute
-                        itemObserver.unobserve(galleryItem); // Stop observing this item
-                    }
-                }
-            });
-            
-            // Wait until scrolling stops before loading non-visible content
-            loadScrollTimeout = setTimeout(() => {
-                isScrolling = false;
-            }, 200);
-        });
-    } else {
-        // Fallback for older browsers: load all at once
-        for (let i = 1; i <= totalPieces; i++) {
-            createGalleryItem(i);
-        }
-        galleryItems.forEach(item => item.style.opacity = 1);
+    };
+
+    const galleryObserver = new IntersectionObserver(observerCallback, observerOptions);
+
+    // --- Initial Gallery Population ---
+    console.log("Clearing existing gallery items and creating placeholders...");
+    galleryContainer.innerHTML = ''; // Clear everything
+    galleryItems.length = 0; // Clear the gallery items array
+
+    // Create all gallery items with placeholders
+    for (let i = 1; i <= totalPieces; i++) {
+        createGalleryItem(i);
     }
 
+    // Observe all created gallery items
+    galleryItems.forEach(item => {
+        galleryObserver.observe(item);
+    });
+
+    console.log(`Created ${totalPieces} placeholders. IntersectionObserver is watching.`);
+
     // --- Font Loading Detection ---
-    // Use document.fonts.ready (modern browsers) to remove the loading class
     if ('fonts' in document) {
         document.fonts.ready.then(() => {
             document.body.classList.remove('fonts-loading');
-            // Start the initial batch loading after fonts are ready
-            // This ensures the splash screen shows properly with the correct fonts
-            if (!initialBatchLoaded) {
-                // Load initial batches for smoother scrolling experience
-                setTimeout(preloadInitialBatches, 500);
-            }
         }).catch(error => {
             console.error('Font loading error:', error);
-            // Remove class anyway in case of error, fallback font will be used
-            document.body.classList.remove('fonts-loading');
-            if (!initialBatchLoaded) {
-                setTimeout(preloadInitialBatches, 500);
-            }
+            document.body.classList.remove('fonts-loading'); // Remove even on error
         });
     } else {
-        // Fallback for older browsers (might still flash)
-        // Remove class after a short delay as a basic fallback
+        // Fallback for browsers without document.fonts support
         setTimeout(() => {
             document.body.classList.remove('fonts-loading');
-            if (!initialBatchLoaded) {
-                setTimeout(preloadInitialBatches, 500);
-            }
-        }, 500); // Adjust delay if needed
+        }, 500); // Assume fonts loaded after 500ms
     }
-    
-    // We already applied the theme above, no need to redeclare savedTheme or check again
-    
-    // Fallback to ensure splash screen doesn't stay indefinitely
-    setTimeout(() => {
-        if (!initialBatchLoaded && !splashScreenRemoved) {
-            loadNextBatch(); // Force load first batch
-            setTimeout(() => {
-                splashScreen.classList.add('hidden');
-                splashScreenRemoved = true; // Mark as removed to prevent reappearing
-            }, 2000);
-        }
-    }, 8000); // Increased from 5000ms to 8000ms to wait longer before force closing
-
-    // ALWAYS LOAD ALL PIECES
-    // Make sure all pieces get loaded even if some logic fails
-    // Ensure this runs after initial load to guarantee all art pieces are visible
-    setTimeout(() => {
-        // Check if we loaded all pieces
-        if (lastLoadedItem < totalPieces) {
-            console.log(`Ensuring all art pieces are loaded. Current: ${lastLoadedItem}/${totalPieces}`);
-            // Force load any remaining pieces
-            for (let i = lastLoadedItem + 1; i <= totalPieces; i++) {
-                createGalleryItem(i);
-            }
-        }
-    }, 10000); // Wait 10 seconds to ensure splash screen is gone and initial loading is complete
 });

@@ -131,11 +131,11 @@ body {
 
 /* --- Matrix Canvas Background --- */
 #matrix-canvas {
+    display: none; /* Hide the canvas completely */
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     z-index: -1; /* Place behind all content */
-    display: block; /* Ensure it behaves as a block element */
     pointer-events: none; /* Prevent interaction */
     /* Transition for potential future effects, though not strictly needed for theme change */
     transition: opacity 0.5s ease;
@@ -611,7 +611,24 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
 
 .light-mode .placeholder {
     animation: loadingPulseLight 1.5s infinite;
+    /* Ensure placeholder is visible */
+    opacity: 1;
+    /* Center the text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+/* Style the iframe while loading and after loaded */
+.gallery-item iframe.loading {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.gallery-item iframe.loaded {
+    opacity: 1;
+}
+
 
 /* --- Infinite Scroll Sentinel --- */
 #sentinel {
@@ -620,6 +637,7 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
     margin-bottom: 50px;
     opacity: 0;
 }
+
 
 /* --- Reduce Animations for Accessibility --- */
 @media (prefers-reduced-motion: reduce) {
@@ -666,80 +684,6 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
         padding: 4px;
         gap: 4px;
     }
-    
-    /* Adjust header spacing */
-    header { padding: 25px 15px; }
-    header h1 { font-size: 2.2em; }
-    
-    /* All items span at most 2 columns */
-    .gallery-item.span-col-3 {
-        grid-column: span 2;
-    }
-}
-
-@media (max-width: 500px) {
-    #gallery-container { 
-        grid-template-columns: 1fr; 
-        padding: 3px; 
-        gap: 3px; 
-    }
-    
-    .gallery-item { aspect-ratio: 1 / 1; } /* Revert aspect ratio for single column */
-    
-    /* Remove all spans in single column layout */
-    .gallery-item.span-col-2, .gallery-item.span-row-2, .gallery-item.span-2x2,
-    .gallery-item.span-col-3, .gallery-item.span-row-3, .gallery-item.skinny, .gallery-item.long {
-        grid-column: span 1; 
-        grid-row: span 1; 
-        aspect-ratio: 1 / 1;
-    }
-    
-    /* Maintain the full-width item */
-    .gallery-item.full-width-item {
-        grid-column: 1 / -1;
-    }
-    
-    header h1 { font-size: 1.7em; }
-    header p { font-size: 0.9em; }
-}
-
-/* --- Splash Screen --- */
-#splash-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: var(--bg-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    opacity: 1;
-    transition: opacity 0.7s ease-out, visibility 0.7s ease-out;
-    visibility: visible;
-}
-
-#splash-screen.hidden {
-    opacity: 0;
-    visibility: hidden;
-}
-
-.splash-content {
-    text-align: center;
-    padding: 2rem;
-    max-width: 500px;
-    animation: fadeInScaleUp 0.8s ease-out forwards;
-}
-
-.splash-content h1 {
-    font-family: var(--font-primary);
-    font-size: 3.5rem;
-    margin-bottom: 2rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent-color);
-    animation: subtle-glow 2s infinite;
 }
 
 .splash-content p {
