@@ -646,7 +646,7 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
         animation: none;
         opacity: 1;
     }
-    
+
     .placeholder {
         animation: none;
     }
@@ -659,7 +659,7 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
         gap: 5px;
         padding: 5px;
     }
-    
+
     /* Adjust all span-col-3 items to span only 2 columns on smaller screens */
     .gallery-item.span-col-3 {
         grid-column: span 2;
@@ -671,7 +671,7 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
     #gallery-container {
         grid-template-columns: repeat(3, 1fr);
     }
-    
+
     /* Further adjust spans to fit 3-column layout */
     .gallery-item.span-col-3 {
         grid-column: span 3; /* Full width at this point */
@@ -686,37 +686,32 @@ body.light-mode .theme-switch-slider::after { opacity: 1; } /* Show in light mod
     }
 }
 
-.splash-content p {
-    font-family: var(--font-secondary);
-    font-size: 1rem;
-    margin-top: 1.5rem;
-    letter-spacing: 0.1em;
-    color: var(--text-color);
-}
+/* --- Mobile Specific Adjustments (Improved Mosaic) --- */
+@media (max-width: 500px) {
+    #gallery-container {
+        grid-template-columns: repeat(2, 1fr); /* Use 2 columns */
+        padding: 2px; /* Slightly smaller padding */
+        gap: 2px; /* Slightly smaller gap */
+    }
 
-.loading-indicator {
-    display: flex;
-    justify-content: center;
-    gap: 0.75rem;
-    margin: 1.5rem 0;
-}
+    /* Allow items to span columns if needed, but limit width */
+    .gallery-item.span-col-2,
+    .gallery-item.span-col-3 {
+        grid-column: span 2; /* Max 2 columns wide */
+    }
+    /* Row spans can remain as they are */
 
-.loading-dot {
-    width: 12px;
-    height: 12px;
-    background-color: var(--accent-color);
-    border-radius: 50%;
-    opacity: 0.6;
-}
+    /* Remove the forced 1:1 aspect ratio override */
+    /* .gallery-item { aspect-ratio: 1 / 1; } */
 
-.loading-dot:nth-child(1) {
-    animation: pulseOpacity 1.5s infinite 0s;
-}
+    /* Ensure full-width item still spans correctly */
+    .gallery-item.full-width-item {
+        grid-column: 1 / -1; /* Span both columns */
+        /* Adjust aspect ratio if needed for 2-col layout */
+        aspect-ratio: 2 / 1;
+        max-height: 180px; /* Example max height */
+    }
 
-.loading-dot:nth-child(2) {
-    animation: pulseOpacity 1.5s infinite 0.3s;
-}
-
-.loading-dot:nth-child(3) {
-    animation: pulseOpacity 1.5s infinite 0.6s;
+    header h1 { font-size: 1.7em; }
+    header p { font-size: 0.9em; }
 }
